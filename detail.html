@@ -5,17 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>桌搭详情 · deskshelf</title>
 <meta name="description" content="deskshelf 桌搭详情：同款清单、3D 复刻预览和相似桌搭。">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;family=Noto+Sans+SC:wght@400;500;700&amp;display=swap">
+<meta name="theme-color" content="#ffffff">
+<link rel="preload" href="fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/jetbrains-mono-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="styles.css">
+<!-- 等内容渲染完再出第一帧，页面之间的转场才对得上 -->
+<link rel="expect" href="#ready" blocking="render">
 </head>
 <body>
+<a class="skip" href="#main">跳到正文</a>
 <div class="wrap">
 
 <header class="site-header">
   <nav class="nav" aria-label="主导航">
-    <a class="brand" href="index.html">
+    <a class="brand" href="index.html" translate="no">
       <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="2.5" width="17" height="17" rx="4"></rect><path d="M2.5 13h17"></path><path d="M7 13V8.5h5V13"></path></svg>
       deskshelf
     </a>
@@ -32,12 +35,12 @@
 </header>
 
 <nav class="crumbs" aria-label="面包屑">
-  <a href="index.html">← /setups</a>
+  <a class="crumbs__back" href="index.html"><svg class="arrow arrow--back" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.5 7h-9M6 3.5L2.5 7 6 10.5"></path></svg>/setups</a>
   <span aria-hidden="true">/</span>
   <span id="crumb-slug"></span>
 </nav>
 
-<main>
+<main id="main" tabindex="-1">
 
 <div class="empty" id="missing" hidden>
   <p class="path" id="missing-path"></p>
@@ -50,13 +53,14 @@
 <section class="detail">
   <div class="gallery">
     <div class="shot gallery__main" id="main-shot">
+      <span class="shot__art" id="main-art"></span>
       <span class="tag-3d" id="main-3d">
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" aria-hidden="true"><path d="M6 1l4.5 2.5v5L6 11 1.5 8.5v-5z"></path><path d="M1.5 3.5L6 6l4.5-2.5M6 6v5"></path></svg>
         可 3D 复刻
       </span>
       <span class="shot__label" id="main-shot-label"></span>
     </div>
-    <div class="thumbs" id="thumbs"></div>
+    <div class="thumbs" id="thumbs" role="group" aria-label="图片"></div>
   </div>
 
   <div class="info">
@@ -111,7 +115,7 @@
     <p class="path">/3d · 摆一摆</p>
     <h2 id="replica-title">把这张桌面搬进 3D，再换成你家的尺寸。</h2>
     <p class="prose" id="replica-desc"></p>
-    <a class="btn btn--dark btn--lg btn--strong" href="#">打开 3D 小工具 →</a>
+    <a class="btn btn--dark btn--lg btn--strong" href="#">打开 3D 小工具<svg class="arrow" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 7h9M8 3.5L11.5 7 8 10.5"></path></svg></a>
   </div>
   <div class="replica__art">
     <svg id="replica-svg" viewBox="0 0 520 370" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" role="img" aria-label="等距视角的桌面线稿示意">
@@ -139,7 +143,7 @@
 <section class="section similar" aria-labelledby="similar-title">
   <div class="similar__head">
     <h2 id="similar-title">相似桌搭</h2>
-    <a id="similar-link" href="index.html">/setups →</a>
+    <a id="similar-link" href="index.html"></a>
   </div>
   <div class="similar__grid" id="similar"></div>
 </section>
@@ -161,7 +165,9 @@
 </footer>
 
 </div>
+<script src="sketch.js"></script>
 <script src="shared.js"></script>
 <script src="detail.js"></script>
+<span id="ready" hidden></span>
 </body>
 </html>

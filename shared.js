@@ -1,4 +1,4 @@
-/* deskshelf 两个页面共用：示例数据、卡片、登录占位弹层。
+/* deskshelf 两个页面共用：示例数据、卡片、提示条、登录占位弹层、页面转场。
    数据目前是写死的示例，接后端时把 SETUPS 换成接口返回即可。 */
 (function () {
   'use strict';
@@ -95,6 +95,14 @@
 
   var CUBE_ICON =
     '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" aria-hidden="true"><path d="M6 1l4.5 2.5v5L6 11 1.5 8.5v-5z"></path><path d="M1.5 3.5L6 6l4.5-2.5M6 6v5"></path></svg>';
+  var ARROW_ICON =
+    '<svg class="arrow" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 7h9M8 3.5L11.5 7 8 10.5"></path></svg>';
+
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  function motionOK() {
+    return !reduceMotion.matches;
+  }
 
   function el(tag, className, text) {
     var node = document.createElement(tag);
@@ -120,15 +128,28 @@
     return 'index.html?' + key + '=' + encodeURIComponent(tag);
   }
 
+  // 给占位图上色并放进线稿。data-shot 记着是哪张桌搭，页面转场靠它配对
+  function paintShot(shot, it, art) {
+    shot.dataset.shot = it.slug;
+    shot.style.setProperty('--shot-bg', it.bg);
+    shot.classList.toggle('shot--dark', it.dark);
+    if (art) {
+      var holder = el('span', 'shot__art');
+      holder.innerHTML = art;
+      shot.appendChild(holder);
+    }
+  }
+
   // keepRatio 为 false 时不写占位比例，由外层样式决定
   function card(it, keepRatio) {
     var article = el('article', 'card');
+    article.dataset.slug = it.slug;
 
-    var shot = el('a', 'shot' + (it.dark ? ' shot--dark' : ''));
+    var shot = el('a', 'shot');
     shot.href = detailUrl(it);
     shot.setAttribute('aria-label', '查看桌搭：' + it.title);
     if (keepRatio !== false) shot.style.aspectRatio = it.ratio;
-    shot.style.background = it.bg;
+    paintShot(shot, it, window.DeskSketch.front(it));
     if (it.d3) {
       var tag = el('span', 'tag-3d');
       tag.innerHTML = CUBE_ICON;
@@ -140,6 +161,7 @@
     var meta = el('div', 'card__meta');
     var path = el('a', 'card__path', '/setups/' + it.slug);
     path.href = detailUrl(it);
+    path.tabIndex = -1; // 和上面的图是同一个链接，键盘只停一次
     var by = el('span', 'card__by');
     var avatar = el('span', 'avatar', it.by.charAt(0));
     avatar.setAttribute('aria-hidden', 'true');
@@ -153,6 +175,46 @@
     return article;
   }
 
+  // 有变化时用浏览器的视图转场把前后两帧接起来；不支持或用户关了动效就直接换
+  var localTransitions = 0;
+
+  function transition(update) {
+    if (!document.startViewTransition || !motionOK()) {
+      update();
+      return;
+    }
+    // .vt-local 告诉样式这是同一页里的转场（筛选栏不跟着淡入淡出）
+    var root = document.documentElement;
+    var done = function () {
+      localTransitions -= 1;
+      if (localTransitions === 0) root.classList.remove('vt-local');
+    };
+    localTransitions += 1;
+    root.classList.add('vt-local');
+    document.startViewTransition(update).finished.then(done, done);
+  }
+
+  // ---------- 提示条 ----------
+  var toastNode = null;
+  var toastTimer = 0;
+
+  function toast(message) {
+    if (!toastNode) {
+      toastNode = el('div', 'toast');
+      toastNode.setAttribute('role', 'status');
+      toastNode.setAttribute('aria-live', 'polite');
+      document.body.appendChild(toastNode);
+      void toastNode.offsetWidth; // 先落一帧，第一次出现也有过渡
+    }
+    toastNode.textContent = message;
+    toastNode.classList.add('is-open');
+    window.clearTimeout(toastTimer);
+    toastTimer = window.setTimeout(function () {
+      toastNode.classList.remove('is-open');
+    }, 2600);
+  }
+
+  // ---------- 登录 ----------
   // 登录还没有后端，点击后用弹层说明，而不是毫无反应
   var loginDialog = null;
 
@@ -171,6 +233,10 @@
       form.appendChild(el('p', 'prose', '登录功能还在开发中，暂时用不了。收藏会先保存在这台设备的浏览器里。'));
       form.appendChild(close);
       loginDialog.appendChild(form);
+      // 点弹层外面的遮罩也能关
+      loginDialog.addEventListener('click', function (event) {
+        if (event.target === loginDialog) loginDialog.close();
+      });
       document.body.appendChild(loginDialog);
     }
     if (typeof loginDialog.showModal === 'function') {
@@ -184,15 +250,49 @@
     btn.addEventListener('click', openLogin);
   });
 
+  // ---------- 页面之间的转场 ----------
+  // 离开页面前只给「点中的那张」和「详情页的大图」留名字，这样只有它俩在两页之间变形，
+  // 其余内容整体淡入淡出，不会满屏乱飞。
+  function slugOf(url) {
+    try {
+      return new URL(url, window.location.href).searchParams.get('slug');
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function nameShots(keep) {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-shot]'), function (shot) {
+      shot.style.viewTransitionName = keep(shot) ? 'shot-' + shot.dataset.shot : 'none';
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('.card__meta, .filters'), function (node) {
+      node.style.viewTransitionName = 'none';
+    });
+  }
+
+  window.addEventListener('pageswap', function (event) {
+    if (!event.viewTransition || !event.activation) return;
+    var target = slugOf(event.activation.entry.url);
+    nameShots(function (shot) {
+      return shot.id === 'main-shot' || shot.dataset.shot === target;
+    });
+  });
+
   window.Deskshelf = {
     CATS: CATS,
     LIGHT: LIGHT,
     DARK: DARK,
     SETUPS: SETUPS,
+    ARROW_ICON: ARROW_ICON,
     el: el,
     find: find,
     detailUrl: detailUrl,
     tagUrl: tagUrl,
-    card: card
+    paintShot: paintShot,
+    card: card,
+    motionOK: motionOK,
+    transition: transition,
+    toast: toast,
+    slugOf: slugOf
   };
 })();
