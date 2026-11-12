@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>deskshelf · 真实桌搭与同款清单</title>
+<meta name="description" content="deskshelf 收录博主授权的真实桌搭照片，每张桌搭附同款清单，还能用 3D 小工具把桌面布局复刻出来。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;family=Noto+Sans+SC:wght@400;500;700&amp;display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+
+<header class="site-header">
+  <nav class="nav" aria-label="主导航">
+    <a class="brand" href="index.html">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="2.5" width="17" height="17" rx="4"></rect><path d="M2.5 13h17"></path><path d="M7 13V8.5h5V13"></path></svg>
+      deskshelf
+    </a>
+    <a href="index.html" aria-current="page">桌搭</a>
+    <a href="#">好物<span class="badge-new">New</span></a>
+    <a href="detail.html#replica">3D 摆一摆<span class="badge-new">New</span></a>
+  </nav>
+  <nav class="nav nav--aux" aria-label="辅助导航">
+    <a href="#">投稿</a>
+    <a href="#">关于</a>
+    <a href="#">赞助</a>
+    <button type="button" class="btn btn--dark">登录</button>
+  </nav>
+</header>
+
+<section class="hero">
+  <div class="hero__text">
+    <p class="path">/setups · 1,280 张真实桌搭</p>
+    <h1><span>看博主怎么摆桌面，</span><span>同款清单一键带走。</span></h1>
+  </div>
+  <aside class="sponsor" aria-label="赞助位">
+    <span class="path">/sponsor</span>
+    <div>
+      <p class="sponsor__title">赞助位</p>
+      <p class="sponsor__desc">让你的桌面好物出现在这里。</p>
+      <a class="link-underline" href="#">了解赞助方式</a>
+    </div>
+  </aside>
+</section>
+
+<section class="filters" aria-label="筛选">
+  <div class="chips" id="chips"></div>
+  <div class="tools">
+    <label class="search">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="4.5"></circle><path d="M10.5 10.5L14 14"></path></svg>
+      <span class="sr-only">搜索桌搭</span>
+      <input type="search" id="search" placeholder="搜索风格、博主、路径" autocomplete="off">
+    </label>
+    <label>
+      <span class="sr-only">排序方式</span>
+      <select class="sort" id="sort">
+        <option value="new">最新收录</option>
+        <option value="saved">最多收藏</option>
+        <option value="d3">可 3D 复刻优先</option>
+      </select>
+    </label>
+  </div>
+</section>
+
+<main>
+  <div class="masonry" id="grid" aria-live="polite"></div>
+
+  <div class="empty" id="empty" hidden>
+    <p class="path">/setups · 0 个结果</p>
+    <p class="empty__title">没有找到匹配的桌搭，换个分类或关键词试试。</p>
+  </div>
+
+  <div class="more">
+    <button type="button" class="btn" id="more">加载更多</button>
+    <p class="path" id="end" hidden>/end · 已经到底了</p>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <p class="site-footer__lead">deskshelf 收录真实的桌搭，每一张都配好同款清单，还能在 3D 里摆一遍。</p>
+  <div class="site-footer__row">
+    <p>© 2026 deskshelf · 图片版权归原作者，均已获授权或链接至原帖</p>
+    <nav class="nav" aria-label="页脚">
+      <a href="#">投稿说明</a>
+      <a href="#">版权与下架</a>
+      <a href="#">隐私政策</a>
+    </nav>
+  </div>
+</footer>
+
+</div>
+<script src="app.js"></script>
+</body>
+</html>
