@@ -98,6 +98,9 @@
   var ARROW_ICON =
     '<svg class="arrow" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 7h9M8 3.5L11.5 7 8 10.5"></path></svg>';
 
+  var BOOKMARK_ICON =
+    '<svg width="12" height="14" viewBox="0 0 14 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M2 1.5h10v13L7 11l-5 3.5z"></path></svg>';
+
   var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
   function motionOK() {
@@ -128,6 +131,53 @@
     return 'index.html?' + key + '=' + encodeURIComponent(tag);
   }
 
+  // ---------- 收藏：存 slug 列表；浏览器禁用存储时退回到只在当前页面有效 ----------
+  var SAVED_KEY = 'deskshelf:saved';
+  var savedFallback = null;
+
+  function readSaved() {
+    if (savedFallback) return savedFallback;
+    try {
+      var list = JSON.parse(window.localStorage.getItem(SAVED_KEY));
+      return Array.isArray(list) ? list : [];
+    } catch (err) {
+      return [];
+    }
+  }
+
+  function isSaved(slug) {
+    return readSaved().indexOf(slug) >= 0;
+  }
+
+  // 返回有没有真的存下来
+  function setSaved(slug, saved) {
+    var list = readSaved().filter(function (s) {
+      return s !== slug;
+    });
+    if (saved) list.push(slug);
+    try {
+      window.localStorage.setItem(SAVED_KEY, JSON.stringify(list));
+      savedFallback = null;
+      return true;
+    } catch (err) {
+      savedFallback = list;
+      return false;
+    }
+  }
+
+  // 收藏按钮点下去之后的反馈：图标弹一下，底部出提示条
+  function saveFeedback(button, saved, kept) {
+    var icon = button.querySelector('svg');
+    if (saved && icon && icon.animate && motionOK()) {
+      icon.animate(
+        [{ transform: 'scale(1)' }, { transform: 'scale(1.3)' }, { transform: 'scale(1)' }],
+        { duration: 280, easing: 'cubic-bezier(0.23, 1, 0.32, 1)' }
+      );
+    }
+    if (!saved) toast('已取消收藏');
+    else toast(kept ? '已收藏，保存在这台设备的浏览器里' : '已收藏，但这个浏览器存不下来，关掉页面就没了');
+  }
+
   // 给占位图上色并放进线稿。data-shot 记着是哪张桌搭，页面转场靠它配对
   function paintShot(shot, it, art) {
     shot.dataset.shot = it.slug;
@@ -140,20 +190,20 @@
     }
   }
 
-  // keepRatio 为 false 时不写占位比例，由外层样式决定
-  function card(it, keepRatio) {
+  // 传了 ratio（比如 4 / 5）时比例由外层样式定，线稿按这个比例画；不传就用桌搭自己的占位比例
+  function card(it, ratio) {
     var article = el('article', 'card');
     article.dataset.slug = it.slug;
 
     var shot = el('a', 'shot');
     shot.href = detailUrl(it);
     shot.setAttribute('aria-label', '查看桌搭：' + it.title);
-    if (keepRatio !== false) shot.style.aspectRatio = it.ratio;
-    paintShot(shot, it, window.DeskSketch.front(it));
+    if (!ratio) shot.style.aspectRatio = it.ratio;
+    paintShot(shot, it, window.DeskSketch.front(it, { ratio: ratio }));
     if (it.d3) {
       var tag = el('span', 'tag-3d');
-      tag.innerHTML = CUBE_ICON;
-      tag.appendChild(document.createTextNode('可 3D 复刻'));
+      // 窄卡片上只留「3D」，给右上角的收藏按钮让位置
+      tag.innerHTML = CUBE_ICON + '<span><span class="tag-3d__more">可 </span>3D<span class="tag-3d__more"> 复刻</span></span>';
       shot.appendChild(tag);
     }
     shot.appendChild(el('span', 'shot__label', '占位图 · ' + it.cat));
@@ -170,9 +220,32 @@
     meta.appendChild(path);
     meta.appendChild(by);
 
+    // 卡片右上角的快速收藏。和图是并列的两个控件，不嵌在链接里面
+    var save = el('button', 'card__save');
+    save.type = 'button';
+    save.innerHTML = BOOKMARK_ICON;
+    save.setAttribute('aria-label', '收藏：' + it.title);
+    save.setAttribute('aria-pressed', String(isSaved(it.slug)));
+    save.addEventListener('click', function () {
+      var saved = save.getAttribute('aria-pressed') !== 'true';
+      var kept = setSaved(it.slug, saved);
+      save.setAttribute('aria-pressed', String(saved));
+      saveFeedback(save, saved, kept);
+    });
+
     article.appendChild(shot);
+    article.appendChild(save);
     article.appendChild(meta);
     return article;
+  }
+
+  // 转场被打断（比如动画还没完就又点了别处）时浏览器会让这几个 promise 失败，
+  // 这是正常情况，接住它，不让控制台报「未处理的错误」
+  function quiet(viewTransition) {
+    var noop = function () {};
+    viewTransition.ready.catch(noop);
+    viewTransition.updateCallbackDone.catch(noop);
+    viewTransition.finished.catch(noop);
   }
 
   // 有变化时用浏览器的视图转场把前后两帧接起来；不支持或用户关了动效就直接换
@@ -191,7 +264,9 @@
     };
     localTransitions += 1;
     root.classList.add('vt-local');
-    document.startViewTransition(update).finished.then(done, done);
+    var running = document.startViewTransition(update);
+    quiet(running);
+    running.finished.then(done, done);
   }
 
   // ---------- 提示条 ----------
@@ -265,16 +340,29 @@
     Array.prototype.forEach.call(document.querySelectorAll('[data-shot]'), function (shot) {
       shot.style.viewTransitionName = keep(shot) ? 'shot-' + shot.dataset.shot : 'none';
     });
-    Array.prototype.forEach.call(document.querySelectorAll('.card__meta, .filters'), function (node) {
+    Array.prototype.forEach.call(document.querySelectorAll('.card__meta, .card__save, .filters'), function (node) {
       node.style.viewTransitionName = 'none';
     });
   }
 
   window.addEventListener('pageswap', function (event) {
+    if (event.viewTransition) quiet(event.viewTransition);
     if (!event.viewTransition || !event.activation) return;
     var target = slugOf(event.activation.entry.url);
     nameShots(function (shot) {
       return shot.id === 'main-shot' || shot.dataset.shot === target;
+    });
+  });
+
+  window.addEventListener('pagereveal', function (event) {
+    if (event.viewTransition) quiet(event.viewTransition);
+  });
+
+  // 从别的页面返回时（页面可能是从缓存里恢复的），收藏状态按最新的重画一遍
+  window.addEventListener('pageshow', function () {
+    Array.prototype.forEach.call(document.querySelectorAll('.card'), function (node) {
+      var button = node.querySelector('.card__save');
+      if (button) button.setAttribute('aria-pressed', String(isSaved(node.dataset.slug)));
     });
   });
 
@@ -293,6 +381,9 @@
     motionOK: motionOK,
     transition: transition,
     toast: toast,
-    slugOf: slugOf
+    slugOf: slugOf,
+    isSaved: isSaved,
+    setSaved: setSaved,
+    saveFeedback: saveFeedback
   };
 })();

@@ -5,7 +5,6 @@
 
   var D = window.Deskshelf;
   var Sketch = window.DeskSketch;
-  var SAVED_KEY = 'deskshelf:saved';
 
   function $(id) {
     return document.getElementById(id);
@@ -34,10 +33,13 @@
 
   // ---------- 图集 ----------
   // 真实照片到位之前，三张图是同一张桌子的三种线稿：正视、俯视、局部放大
+  // 大图是 3:2，缩略图是 4:3，线稿各按各的比例画
+  var MAIN_RATIO = 3 / 2;
+  var THUMB_RATIO = 4 / 3;
   var VIEWS = [
-    { label: '全景', art: Sketch.front(setup) },
-    { label: '桌面俯拍', art: Sketch.top(setup) },
-    { label: '细节', art: Sketch.front(setup, true) }
+    { label: '全景', art: function (ratio) { return Sketch.front(setup, { ratio: ratio }); } },
+    { label: '桌面俯拍', art: function (ratio) { return Sketch.top(setup, { ratio: ratio }); } },
+    { label: '细节', art: function (ratio) { return Sketch.front(setup, { ratio: ratio, zoom: true }); } }
   ];
 
   var main = $('main-shot');
@@ -54,7 +56,7 @@
     var thumb = D.el('button', 'thumb shot');
     thumb.type = 'button';
     thumb.setAttribute('aria-label', '查看图片：' + view.label);
-    D.paintShot(thumb, setup, view.art);
+    D.paintShot(thumb, setup, view.art(THUMB_RATIO));
     delete thumb.dataset.shot; // 缩略图不参与页面转场
     thumb.appendChild(D.el('span', 'shot__label', view.label));
     thumb.addEventListener('click', function () {
@@ -70,7 +72,8 @@
     thumbs.forEach(function (thumb, i) {
       thumb.setAttribute('aria-pressed', String(i === index));
     });
-    mainArt.innerHTML = VIEWS[index].art;
+    mainArt.innerHTML = VIEWS[index].art(MAIN_RATIO);
+    $('spots').hidden = index !== 0; // 热点的位置只对全景图有效
     mainLabel.textContent = '占位图 · ' + VIEWS[index].label;
     if (animate && mainArt.animate) {
       // 轻微的模糊把前后两张线稿接成一次变化，而不是两张图硬切
@@ -102,9 +105,59 @@
   });
 
   // ---------- 同款清单 ----------
+  // 清单里的物品在全景图上有对应位置时，图上放一个带编号的热点，和清单里那一行互相联动。
+  // 位置现在来自线稿；换成真实照片后，改成每件物品在照片上的坐标即可
+  var spotAt = Sketch.spots(setup, MAIN_RATIO);
+  var usedKinds = {};
+  var hotRow = null;
+
+  function pair(spot, row) {
+    function hot(on) {
+      spot.classList.toggle('is-hot', on);
+      row.classList.toggle('is-hot', on);
+    }
+    [spot, row].forEach(function (node) {
+      node.addEventListener('pointerenter', function (event) {
+        if (event.pointerType === 'mouse') hot(true);
+      });
+      node.addEventListener('pointerleave', function () { hot(false); });
+      node.addEventListener('focusin', function () { hot(true); });
+      node.addEventListener('focusout', function () { hot(false); });
+    });
+    // 点热点：滚到清单里对应的那一行，并让它亮一下
+    spot.addEventListener('click', function () {
+      row.scrollIntoView({ block: 'center' });
+      if (hotRow) hotRow.classList.remove('is-flash');
+      void row.offsetWidth;
+      row.classList.add('is-flash');
+      hotRow = row;
+    });
+  }
+
   $('items-count').textContent = '/items · ' + setup.items.length + ' 件';
   setup.items.forEach(function (item, i) {
     var li = D.el('li', 'item');
+    var num = D.el('span', 'item__num', (i < 9 ? '0' : '') + (i + 1));
+    num.setAttribute('aria-hidden', 'true');
+    li.appendChild(num);
+    var where = usedKinds[item.kind] ? null : spotAt[item.kind];
+    usedKinds[item.kind] = true;
+    if (where) {
+      var spot = D.el('button', 'spot');
+      spot.type = 'button';
+      spot.style.left = where.x + '%';
+      spot.style.top = where.y + '%';
+      spot.style.setProperty('--i', $('spots').children.length);
+      spot.setAttribute('aria-label', '清单第 ' + (i + 1) + ' 件：' + item.name);
+      spot.appendChild(D.el('span', 'spot__num', String(i + 1)));
+      var tip = D.el('span', 'spot__tip', item.name);
+      if (where.x < 20) tip.classList.add('spot__tip--left');
+      if (where.x > 80) tip.classList.add('spot__tip--right');
+      if (where.y < 22) tip.classList.add('spot__tip--below');
+      spot.appendChild(tip);
+      $('spots').appendChild(spot);
+      pair(spot, li);
+    }
     var thumb = D.el('span', 'item__thumb');
     thumb.style.background = D.LIGHT[(setup.idx + i) % D.LIGHT.length];
     thumb.setAttribute('aria-hidden', 'true');
@@ -167,7 +220,7 @@
   }).sort(function (a, b) {
     return (score(b) - score(a)) || (a.idx - b.idx);
   }).slice(0, 4).forEach(function (other) {
-    $('similar').appendChild(D.card(other, false));
+    $('similar').appendChild(D.card(other, 4 / 5));
   });
 
   var similarLink = $('similar-link');
@@ -175,25 +228,7 @@
   similarLink.textContent = '/setups?cat=' + setup.cat;
   similarLink.insertAdjacentHTML('beforeend', D.ARROW_ICON);
 
-  // ---------- 收藏：存 slug 列表；浏览器禁用存储时退回到只在当前页面有效 ----------
-  function readSaved() {
-    try {
-      var list = JSON.parse(window.localStorage.getItem(SAVED_KEY));
-      return Array.isArray(list) ? list : [];
-    } catch (err) {
-      return [];
-    }
-  }
-
-  function writeSaved(list) {
-    try {
-      window.localStorage.setItem(SAVED_KEY, JSON.stringify(list));
-      return true;
-    } catch (err) {
-      return false;
-    }
-  }
-
+  // ---------- 收藏：和首页卡片上的收藏按钮共用一份记录 ----------
   var save = $('save');
   var saveLabel = $('save-label');
 
@@ -202,26 +237,16 @@
     saveLabel.textContent = saved ? '已收藏' : '收藏';
   }
 
-  paintSave(readSaved().indexOf(setup.slug) >= 0);
+  paintSave(D.isSaved(setup.slug));
+  window.addEventListener('pageshow', function () {
+    paintSave(D.isSaved(setup.slug));
+  });
 
   save.addEventListener('click', function () {
     var saved = save.getAttribute('aria-pressed') !== 'true';
-    var list = readSaved().filter(function (s) {
-      return s !== setup.slug;
-    });
-    if (saved) list.push(setup.slug);
-    var kept = writeSaved(list);
+    var kept = D.setSaved(setup.slug, saved);
     paintSave(saved);
-
-    var icon = save.querySelector('svg');
-    if (saved && icon.animate && D.motionOK()) {
-      icon.animate(
-        [{ transform: 'scale(1)' }, { transform: 'scale(1.3)' }, { transform: 'scale(1)' }],
-        { duration: 280, easing: 'cubic-bezier(0.23, 1, 0.32, 1)' }
-      );
-    }
-    if (!saved) D.toast('已取消收藏');
-    else D.toast(kept ? '已收藏，保存在这台设备的浏览器里' : '已收藏，但这个浏览器存不下来，关掉页面就没了');
+    D.saveFeedback(save, saved, kept);
   });
 
   // 内容是脚本填进去的，带 #replica 进来时浏览器的锚点定位可能偏早，这里再对齐一次

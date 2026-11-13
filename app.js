@@ -135,6 +135,7 @@
       var slug = kid.dataset.slug;
       kid.querySelector('.shot').style.viewTransitionName = 'shot-' + slug;
       kid.querySelector('.card__meta').style.viewTransitionName = 'meta-' + slug;
+      kid.querySelector('.card__save').style.viewTransitionName = 'save-' + slug;
     });
   }
 
