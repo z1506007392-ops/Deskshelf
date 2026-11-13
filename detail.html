@@ -3,19 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>白橡木极简桌面 · deskshelf</title>
-<meta name="description" content="白橡木极简桌面的桌搭详情：同款清单、3D 复刻预览和相似桌搭。">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;family=Noto+Sans+SC:wght@400;500;700&amp;display=swap">
+<title>桌搭详情 · deskshelf</title>
+<meta name="description" content="deskshelf 桌搭详情：同款清单、3D 复刻预览和相似桌搭。">
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preload" href="fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/jetbrains-mono-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="styles.css">
+<!-- 等内容渲染完再出第一帧，页面之间的转场才对得上 -->
+<link rel="expect" href="#ready" blocking="render">
 </head>
 <body>
+<a class="skip" href="#main">跳到正文</a>
 <div class="wrap">
 
 <header class="site-header">
   <nav class="nav" aria-label="主导航">
-    <a class="brand" href="index.html">
+    <a class="brand" href="index.html" translate="no">
       <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="2.5" width="17" height="17" rx="4"></rect><path d="M2.5 13h17"></path><path d="M7 13V8.5h5V13"></path></svg>
       deskshelf
     </a>
@@ -27,46 +31,52 @@
     <a href="#">投稿</a>
     <a href="#">关于</a>
     <a href="#">赞助</a>
-    <button type="button" class="btn btn--dark">登录</button>
+    <button type="button" class="btn btn--dark" data-login>登录</button>
   </nav>
 </header>
 
 <nav class="crumbs" aria-label="面包屑">
-  <a href="index.html">← /setups</a>
+  <a class="crumbs__back" href="index.html"><svg class="arrow arrow--back" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.5 7h-9M6 3.5L2.5 7 6 10.5"></path></svg>/setups</a>
   <span aria-hidden="true">/</span>
-  <span>white-oak-minimal</span>
+  <span id="crumb-slug"></span>
 </nav>
 
-<main>
+<main id="main" tabindex="-1">
+
+<div class="empty" id="missing" hidden>
+  <p class="path" id="missing-path"></p>
+  <p class="empty__title">没有找到这张桌搭，可能已经下架或者链接写错了。</p>
+  <a class="link-underline" href="index.html">回到全部桌搭</a>
+</div>
+
+<div id="content">
 
 <section class="detail">
   <div class="gallery">
     <div class="shot gallery__main" id="main-shot">
-      <span class="tag-3d">
+      <span class="shot__art" id="main-art"></span>
+      <div class="spots" id="spots"></div>
+      <span class="tag-3d" id="main-3d">
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" aria-hidden="true"><path d="M6 1l4.5 2.5v5L6 11 1.5 8.5v-5z"></path><path d="M1.5 3.5L6 6l4.5-2.5M6 6v5"></path></svg>
         可 3D 复刻
       </span>
-      <span class="shot__label" id="main-shot-label">占位图 · 全景</span>
+      <span class="shot__label" id="main-shot-label"></span>
     </div>
-    <div class="thumbs">
-      <button type="button" class="thumb" data-label="全景" data-bg="#EFEAE2" style="background: #EFEAE2" aria-pressed="true" aria-label="查看图片：全景"><span>全景</span></button>
-      <button type="button" class="thumb" data-label="桌面俯拍" data-bg="#E6ECE8" style="background: #E6ECE8" aria-pressed="false" aria-label="查看图片：桌面俯拍"><span>桌面俯拍</span></button>
-      <button type="button" class="thumb" data-label="理线细节" data-bg="#E9E6F0" style="background: #E9E6F0" aria-pressed="false" aria-label="查看图片：理线细节"><span>理线细节</span></button>
-    </div>
+    <div class="thumbs" id="thumbs" role="group" aria-label="图片"></div>
   </div>
 
   <div class="info">
     <div class="info__head">
-      <p class="path">/setups/white-oak-minimal</p>
-      <h1>白橡木极简桌面</h1>
-      <p class="prose">160 cm 的白橡木桌面配一块 27 寸屏，线全部走桌下，桌面上只留键盘、桌垫和一盏挂灯。适合想把工作区收干净、又不想显得冷清的人。</p>
+      <p class="path" id="setup-path"></p>
+      <h1 id="setup-title"></h1>
+      <p class="prose" id="setup-desc"></p>
     </div>
 
     <div class="creator">
       <div class="creator__who">
-        <span class="avatar avatar--lg" aria-hidden="true">阿</span>
+        <span class="avatar avatar--lg" id="creator-avatar" aria-hidden="true"></span>
         <div>
-          <p class="creator__name">阿木</p>
+          <p class="creator__name" id="creator-name"></p>
           <p class="creator__note">经授权收录 · 来自小红书</p>
         </div>
       </div>
@@ -77,16 +87,11 @@
 
     <div class="tags">
       <p class="path">/tags</p>
-      <div class="chips">
-        <a class="chip" href="index.html?cat=极简">极简</a>
-        <a class="chip" href="index.html?q=oak">白橡木</a>
-        <a class="chip" href="index.html">单屏</a>
-        <a class="chip" href="index.html?cat=理线">理线</a>
-      </div>
+      <div class="chips" id="setup-tags"></div>
     </div>
 
     <div class="actions">
-      <a class="btn btn--dark btn--lg btn--strong" href="#replica">
+      <a class="btn btn--dark btn--lg btn--strong" id="to-replica" href="#replica">
         <svg width="16" height="16" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round" aria-hidden="true"><path d="M6 1l4.5 2.5v5L6 11 1.5 8.5v-5z"></path><path d="M1.5 3.5L6 6l4.5-2.5M6 6v5"></path></svg>
         在 3D 里摆一遍
       </a>
@@ -100,53 +105,22 @@
 
 <section class="section items-section" aria-labelledby="items-title">
   <div class="items-section__intro">
-    <p class="path">/items · 6 件</p>
+    <p class="path" id="items-count">/items</p>
     <h2 id="items-title">同款清单</h2>
     <p>这张桌面上出现的东西，按从大到小列好。点「去看看」跳到购买页。</p>
   </div>
-  <ul class="items">
-    <li class="item">
-      <span class="item__thumb" style="background: #EFEAE2" aria-hidden="true"></span>
-      <div class="item__text"><p class="item__name">白橡木升降桌 160 × 70</p><p class="item__meta">桌子 · [价格]</p></div>
-      <a class="btn" href="#" aria-label="去看看：白橡木升降桌">去看看 →</a>
-    </li>
-    <li class="item">
-      <span class="item__thumb" style="background: #E3EAF1" aria-hidden="true"></span>
-      <div class="item__text"><p class="item__name">27 英寸 4K 显示器</p><p class="item__meta">显示器 · [价格]</p></div>
-      <a class="btn" href="#" aria-label="去看看：27 英寸 4K 显示器">去看看 →</a>
-    </li>
-    <li class="item">
-      <span class="item__thumb" style="background: #EDEDEB" aria-hidden="true"></span>
-      <div class="item__text"><p class="item__name">75% 铝壳机械键盘</p><p class="item__meta">键盘 · [价格]</p></div>
-      <a class="btn" href="#" aria-label="去看看：75% 铝壳机械键盘">去看看 →</a>
-    </li>
-    <li class="item">
-      <span class="item__thumb" style="background: #E6ECE8" aria-hidden="true"></span>
-      <div class="item__text"><p class="item__name">羊毛毡桌垫 90 × 40</p><p class="item__meta">桌垫 · [价格]</p></div>
-      <a class="btn" href="#" aria-label="去看看：羊毛毡桌垫">去看看 →</a>
-    </li>
-    <li class="item">
-      <span class="item__thumb" style="background: #F2EEDC" aria-hidden="true"></span>
-      <div class="item__text"><p class="item__name">屏幕挂灯</p><p class="item__meta">灯具 · [价格]</p></div>
-      <a class="btn" href="#" aria-label="去看看：屏幕挂灯">去看看 →</a>
-    </li>
-    <li class="item">
-      <span class="item__thumb" style="background: #E9E6F0" aria-hidden="true"></span>
-      <div class="item__text"><p class="item__name">桌下理线槽</p><p class="item__meta">理线 · [价格]</p></div>
-      <a class="btn" href="#" aria-label="去看看：桌下理线槽">去看看 →</a>
-    </li>
-  </ul>
+  <ul class="items" id="items"></ul>
 </section>
 
 <section class="section replica" id="replica" aria-labelledby="replica-title">
   <div class="replica__text">
     <p class="path">/3d · 摆一摆</p>
     <h2 id="replica-title">把这张桌面搬进 3D，再换成你家的尺寸。</h2>
-    <p class="prose">这套桌搭的布局已经复刻好：160 × 70 cm 桌面，6 件物品各就各位。拖一拖、换一换、量一量，看看放到你家合不合适。</p>
-    <a class="btn btn--dark btn--lg btn--strong" href="#">打开 3D 小工具 →</a>
+    <p class="prose" id="replica-desc"></p>
+    <a class="btn btn--dark btn--lg btn--strong" href="#">打开 3D 小工具<svg class="arrow" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 7h9M8 3.5L11.5 7 8 10.5"></path></svg></a>
   </div>
   <div class="replica__art">
-    <svg viewBox="0 0 520 370" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" role="img" aria-label="等距视角的桌面线稿：桌上有显示器、键盘、鼠标、桌垫、台灯和杯子，标注 160 cm 宽、70 cm 深">
+    <svg id="replica-svg" viewBox="0 0 520 370" fill="none" stroke="#111111" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" role="img" aria-label="等距视角的桌面线稿示意">
       <path d="M133.6 145V229M338 263V347M421.1 215V299"></path>
       <path d="M118 136L339.7 264V272L118 144Z" fill="#FFFFFF"></path>
       <path d="M339.7 264L436.7 208V216L339.7 272Z" fill="#FFFFFF"></path>
@@ -162,8 +136,8 @@
       <path d="M239 50L256 60" stroke-width="5"></path>
       <path d="M375.7 190V208A9 4.5 0 0 0 393.7 208V190" fill="#FFFFFF"></path>
       <ellipse cx="384.7" cy="190" rx="9" ry="4.5" fill="#FFFFFF"></ellipse>
-      <text x="214" y="234" transform="rotate(30 214 234)" text-anchor="middle">160 cm</text>
-      <text x="382" y="266" transform="rotate(-30 382 266)" text-anchor="middle">70 cm</text>
+      <text x="214" y="234" transform="rotate(30 214 234)" text-anchor="middle" id="replica-w"></text>
+      <text x="382" y="266" transform="rotate(-30 382 266)" text-anchor="middle" id="replica-d"></text>
     </svg>
   </div>
 </section>
@@ -171,55 +145,12 @@
 <section class="section similar" aria-labelledby="similar-title">
   <div class="similar__head">
     <h2 id="similar-title">相似桌搭</h2>
-    <a href="index.html?cat=极简">/setups?tag=极简 →</a>
+    <a id="similar-link" href="index.html"></a>
   </div>
-  <div class="similar__grid">
-    <article class="card">
-      <a class="shot" href="detail.html" style="background: #EDEDEB" aria-label="查看桌搭 all-white-compact">
-        <span class="shot__label">占位图 · 极简</span>
-      </a>
-      <div class="card__meta">
-        <a class="card__path" href="detail.html">/setups/all-white-compact</a>
-        <span class="card__by"><span class="avatar" aria-hidden="true">M</span>Mono柚</span>
-      </div>
-    </article>
-    <article class="card">
-      <a class="shot" href="detail.html" style="background: #E6ECE8" aria-label="查看桌搭 birch-ladder-shelf">
-        <span class="shot__label">占位图 · 极简</span>
-      </a>
-      <div class="card__meta">
-        <a class="card__path" href="detail.html">/setups/birch-ladder-shelf</a>
-        <span class="card__by"><span class="avatar" aria-hidden="true">拾</span>拾屿</span>
-      </div>
-    </article>
-    <article class="card">
-      <a class="shot" href="detail.html" style="background: #E3EAF1" aria-label="查看桌搭 clean-cable-underdesk">
-        <span class="tag-3d">
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" aria-hidden="true"><path d="M6 1l4.5 2.5v5L6 11 1.5 8.5v-5z"></path><path d="M1.5 3.5L6 6l4.5-2.5M6 6v5"></path></svg>
-          可 3D 复刻
-        </span>
-        <span class="shot__label">占位图 · 理线</span>
-      </a>
-      <div class="card__meta">
-        <a class="card__path" href="detail.html">/setups/clean-cable-underdesk</a>
-        <span class="card__by"><span class="avatar" aria-hidden="true">灰</span>灰尘</span>
-      </div>
-    </article>
-    <article class="card">
-      <a class="shot" href="detail.html" style="background: #F1E7E1" aria-label="查看桌搭 bay-window-desk">
-        <span class="tag-3d">
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" aria-hidden="true"><path d="M6 1l4.5 2.5v5L6 11 1.5 8.5v-5z"></path><path d="M1.5 3.5L6 6l4.5-2.5M6 6v5"></path></svg>
-          可 3D 复刻
-        </span>
-        <span class="shot__label">占位图 · 小户型</span>
-      </a>
-      <div class="card__meta">
-        <a class="card__path" href="detail.html">/setups/bay-window-desk</a>
-        <span class="card__by"><span class="avatar" aria-hidden="true">南</span>南枝</span>
-      </div>
-    </article>
-  </div>
+  <div class="similar__grid" id="similar"></div>
 </section>
+
+</div>
 
 </main>
 
@@ -236,6 +167,9 @@
 </footer>
 
 </div>
+<script src="sketch.js"></script>
+<script src="shared.js"></script>
 <script src="detail.js"></script>
+<span id="ready" hidden></span>
 </body>
 </html>

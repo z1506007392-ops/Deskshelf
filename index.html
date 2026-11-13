@@ -5,17 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>deskshelf · 真实桌搭与同款清单</title>
 <meta name="description" content="deskshelf 收录博主授权的真实桌搭照片，每张桌搭附同款清单，还能用 3D 小工具把桌面布局复刻出来。">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;family=Noto+Sans+SC:wght@400;500;700&amp;display=swap">
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preload" href="fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/jetbrains-mono-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="styles.css">
+<!-- 等卡片渲染完再出第一帧，页面之间的转场才对得上 -->
+<link rel="expect" href="#ready" blocking="render">
 </head>
 <body>
+<a class="skip" href="#main">跳到桌搭列表</a>
 <div class="wrap">
 
 <header class="site-header">
   <nav class="nav" aria-label="主导航">
-    <a class="brand" href="index.html">
+    <a class="brand" href="index.html" translate="no">
       <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="2.5" width="17" height="17" rx="4"></rect><path d="M2.5 13h17"></path><path d="M7 13V8.5h5V13"></path></svg>
       deskshelf
     </a>
@@ -27,13 +31,13 @@
     <a href="#">投稿</a>
     <a href="#">关于</a>
     <a href="#">赞助</a>
-    <button type="button" class="btn btn--dark">登录</button>
+    <button type="button" class="btn btn--dark" data-login>登录</button>
   </nav>
 </header>
 
 <section class="hero">
   <div class="hero__text">
-    <p class="path">/setups · 1,280 张真实桌搭</p>
+    <p class="path" id="count">/setups</p>
     <h1><span>看博主怎么摆桌面，</span><span>同款清单一键带走。</span></h1>
   </div>
   <aside class="sponsor" aria-label="赞助位">
@@ -46,31 +50,43 @@
   </aside>
 </section>
 
-<section class="filters" aria-label="筛选">
-  <div class="chips" id="chips"></div>
+<div class="filters-sentinel" id="filters-sentinel" aria-hidden="true"></div>
+<section class="filters" id="filters" aria-label="筛选">
+  <div class="chips chips--scroll" id="chips"></div>
   <div class="tools">
-    <label class="search">
+    <div class="search">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="4.5"></circle><path d="M10.5 10.5L14 14"></path></svg>
-      <span class="sr-only">搜索桌搭</span>
-      <input type="search" id="search" placeholder="搜索风格、博主、路径" autocomplete="off">
-    </label>
-    <label>
+      <label class="sr-only" for="search">搜索桌搭</label>
+      <input type="search" id="search" name="q" placeholder="搜索风格、博主、路径…" autocomplete="off" enterkeyhint="search" spellcheck="false">
+      <kbd class="search__kbd" id="search-kbd" aria-hidden="true">/</kbd>
+      <button type="button" class="search__clear" id="search-clear" aria-label="清除搜索" hidden>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7"></path></svg>
+      </button>
+    </div>
+    <label class="sort-wrap">
       <span class="sr-only">排序方式</span>
-      <select class="sort" id="sort">
+      <select class="sort" id="sort" name="sort">
         <option value="new">最新收录</option>
         <option value="saved">最多收藏</option>
         <option value="d3">可 3D 复刻优先</option>
       </select>
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4.5L6 7.5l3-3"></path></svg>
     </label>
   </div>
 </section>
 
-<main>
-  <div class="masonry" id="grid" aria-live="polite"></div>
+<main id="main" tabindex="-1">
+  <div class="results">
+    <p class="path" id="results" aria-live="polite"></p>
+    <button type="button" class="link-underline" id="reset" hidden>清除筛选</button>
+  </div>
+
+  <div class="masonry" id="grid"></div>
 
   <div class="empty" id="empty" hidden>
-    <p class="path">/setups · 0 个结果</p>
-    <p class="empty__title">没有找到匹配的桌搭，换个分类或关键词试试。</p>
+    <p class="empty__title">没有匹配的桌搭。</p>
+    <p class="empty__desc">换个分类或关键词，或者清除筛选看全部。</p>
+    <button type="button" class="btn" id="empty-reset">清除筛选</button>
   </div>
 
   <div class="more">
@@ -92,6 +108,9 @@
 </footer>
 
 </div>
+<script src="sketch.js"></script>
+<script src="shared.js"></script>
 <script src="app.js"></script>
+<span id="ready" hidden></span>
 </body>
 </html>
